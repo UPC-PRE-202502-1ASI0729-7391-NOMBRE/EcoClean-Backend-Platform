@@ -27,9 +27,8 @@ public class SecurityConfiguration {
                     var config = new CorsConfiguration();
                     
                     config.setAllowedOrigins(List.of(
-                            "http://localhost:4200",    
-                            "https://ecoclean-frontend.onrender.com",    
-                            "https://tu-proyecto.vercel.app"             
+                            "http://localhost:4200",   
+                            "https://eco-clean-front-end.vercel.app"     
                     ));
                     
                     config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
