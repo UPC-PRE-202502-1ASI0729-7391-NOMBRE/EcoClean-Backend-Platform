@@ -17,7 +17,7 @@ public class CorsConfig {
 
 
         config.setAllowedOrigins(List.of(
-                "https://ecoclean-backend-platform-j5hd.onrender.com",
+                "https://eco-clean-front-end.vercel.app",
                 "http://localhost:4200"
         ));
 
