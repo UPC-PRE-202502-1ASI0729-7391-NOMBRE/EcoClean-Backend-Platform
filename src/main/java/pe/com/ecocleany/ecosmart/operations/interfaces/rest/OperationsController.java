@@ -53,7 +53,7 @@ public class OperationsController {
     @PostMapping("/reports")
     public ResponseEntity<?> createReport(@RequestBody CreateReportResource resource) {
 
-        Long reporterId = 1L;
+        Long reporterId = (Long) 1L;
 
         var command = new CreateReportCommand(
                 resource.message(),

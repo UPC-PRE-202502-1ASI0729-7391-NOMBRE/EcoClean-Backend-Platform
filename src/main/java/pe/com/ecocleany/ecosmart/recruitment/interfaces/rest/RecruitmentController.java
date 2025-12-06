@@ -45,7 +45,7 @@ public class RecruitmentController {
     @PostMapping
     public ResponseEntity<Long> apply(@RequestBody CreateApplicationResource resource) {
 
-        Long userId = 1L; // luego reemplazar por securityUtils.getUserId()
+        Long userId = (Long) 1L; // luego reemplazar por securityUtils.getUserId()
 
         var command = new CreateApplicationCommand(
                 userId,

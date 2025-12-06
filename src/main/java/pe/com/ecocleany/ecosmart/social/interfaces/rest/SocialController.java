@@ -45,7 +45,7 @@ public class SocialController {
 
     @PostMapping
     public ResponseEntity<Long> createPost(@RequestBody CreatePostResource resource) {
-        Long userId = 1L;
+        Long userId = (Long) 1L;
 
         try {
             String username = securityUtils.getCurrentUsername();

@@ -36,7 +36,7 @@ public class CommunicationController {
     @Operation(summary = "Usuario: Enviar mensaje")
     @PostMapping("/send")
     public ResponseEntity<Long> sendMessage(@RequestBody SendMessageResource resource) {
-        Long userId = 1L;
+        Long userId = (Long) 1L;
         var command = new CreateMessageCommand(resource.content(), resource.targetMunicipality(), userId);
         Long messageId = commandService.handle(command);
         return ResponseEntity.ok(messageId);
@@ -45,7 +45,7 @@ public class CommunicationController {
     @Operation(summary = "Empleado: Responder")
     @PostMapping("/reply")
     public ResponseEntity<Long> replyMessage(@RequestBody ReplyMessageResource resource) {
-        Long employeeId = 2L;
+        Long employeeId = (Long) 2L;
         var command = new ReplyMessageCommand(resource.content(), employeeId);
         Long messageId = commandService.handle(command);
         return ResponseEntity.ok(messageId);
