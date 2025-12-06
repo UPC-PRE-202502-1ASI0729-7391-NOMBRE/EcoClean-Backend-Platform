@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: ecoclean-backend
+    env: java
+    runtime: java21
+    buildCommand: "./mvnw clean install"
+    startCommand: "java -jar target/*.jar"
+    plan: free
