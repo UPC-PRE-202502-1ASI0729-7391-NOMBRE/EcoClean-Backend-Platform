@@ -45,24 +45,16 @@ public class SocialController {
 
     @PostMapping
     public ResponseEntity<Long> createPost(@RequestBody CreatePostResource resource) {
-        Long userId = (Long) 1L;
 
-        try {
-            String username = securityUtils.getCurrentUsername();
-            if (username != null) {
-                var userOpt = userRepository.findByUsername(username);
-                if (userOpt.isPresent()) {
-                    userId = userOpt.get().getId();
-                }
-            }
-        } catch (Exception ex) {
-        }
+        String username = securityUtils.getCurrentUsername();
+        var user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         var command = new CreatePostCommand(
                 resource.content(),
                 resource.imageUrl(),
                 resource.district(),
-                userId
+                user.getId()
         );
         Long postId = postCommandService.handle(command);
         return new ResponseEntity<>(postId, HttpStatus.CREATED);

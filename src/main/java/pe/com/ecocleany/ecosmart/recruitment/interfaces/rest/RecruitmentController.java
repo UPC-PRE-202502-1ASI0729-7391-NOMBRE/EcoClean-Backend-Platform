@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import pe.com.ecocleany.ecosmart.iam.infrastructure.persistence.jpa.repositories.UserRepository; // Importar
 import pe.com.ecocleany.ecosmart.recruitment.application.internal.commandservices.RecruitmentCommandServiceImpl;
 import pe.com.ecocleany.ecosmart.recruitment.application.internal.queryservices.RecruitmentQueryServiceImpl;
 import pe.com.ecocleany.ecosmart.recruitment.domain.model.commands.CreateApplicationCommand;
@@ -16,6 +17,8 @@ import pe.com.ecocleany.ecosmart.recruitment.interfaces.rest.resources.JobApplic
 import pe.com.ecocleany.ecosmart.recruitment.interfaces.rest.resources.UpdateStatusResource;
 import pe.com.ecocleany.ecosmart.recruitment.interfaces.rest.transform.JobApplicationResourceFromEntityAssembler;
 import pe.com.ecocleany.ecosmart.shared.interfaces.rest.SecurityUtils;
+import pe.com.ecocleany.ecosmart.profiles.infrastructure.persistence.jpa.repositories.ProfileRepository;
+import pe.com.ecocleany.ecosmart.recruitment.interfaces.rest.resources.EmployeeResource;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,26 +32,34 @@ public class RecruitmentController {
     private final RecruitmentQueryServiceImpl queryService;
     private final SecurityUtils securityUtils;
     private final JobApplicationResourceFromEntityAssembler assembler;
+    private final UserRepository userRepository;
+    private final ProfileRepository profileRepository;
 
     public RecruitmentController(
             RecruitmentCommandServiceImpl commandService,
             RecruitmentQueryServiceImpl queryService,
             SecurityUtils securityUtils,
-            JobApplicationResourceFromEntityAssembler assembler
+            JobApplicationResourceFromEntityAssembler assembler,
+            UserRepository userRepository,
+            ProfileRepository profileRepository
     ) {
         this.commandService = commandService;
         this.queryService = queryService;
         this.securityUtils = securityUtils;
         this.assembler = assembler;
+        this.userRepository = userRepository;
+        this.profileRepository = profileRepository;
     }
 
     @PostMapping
     public ResponseEntity<Long> apply(@RequestBody CreateApplicationResource resource) {
 
-        Long userId = (Long) 1L; // luego reemplazar por securityUtils.getUserId()
+        String username = securityUtils.getCurrentUsername();
+        var user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         var command = new CreateApplicationCommand(
-                userId,
+                user.getId(), // ID REAL
                 resource.targetMunicipality(),
                 resource.description()
         );
@@ -88,5 +99,19 @@ public class RecruitmentController {
         var command = new FireEmployeeCommand(userId);
         commandService.handle(command);
         return ResponseEntity.ok("Proceso de despido iniciado.");
+    }
+
+    @GetMapping("/employees")
+    public ResponseEntity<List<EmployeeResource>> getEmployees() {
+        var employees = profileRepository.findAllByWorkingMunicipalityIsNotNull()
+                .stream()
+                .map(p -> new EmployeeResource(
+                        p.getUserId(),
+                        p.getFullName(),
+                        p.getEmail(),
+                        p.getWorkingMunicipality()
+                ))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(employees);
     }
 }

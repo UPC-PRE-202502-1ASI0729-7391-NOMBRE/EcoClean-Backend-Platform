@@ -14,6 +14,7 @@ import pe.com.ecocleany.ecosmart.iam.interfaces.rest.transform.SignInCommandFrom
 import pe.com.ecocleany.ecosmart.iam.interfaces.rest.transform.SignUpCommandFromResourceAssembler;
 import pe.com.ecocleany.ecosmart.profiles.application.internal.commandservices.ProfileCommandServiceImpl;
 import pe.com.ecocleany.ecosmart.profiles.domain.model.commands.CreateProfileCommand;
+import pe.com.ecocleany.ecosmart.shared.interfaces.rest.resources.MessageResource;
 
 @RestController
 @RequestMapping("/api/v1/authentication")
@@ -36,7 +37,7 @@ public class AuthenticationController {
         var user = userCommandService.handle(command);
 
         if (user.isEmpty()) {
-            return ResponseEntity.badRequest().body("El usuario o email ya existe.");
+            return ResponseEntity.badRequest().body(new MessageResource("El usuario o email ya existe."));
         }
 
         var createdUser = user.get();
@@ -52,7 +53,7 @@ public class AuthenticationController {
 
         profileCommandService.handle(profileCommand);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body("Usuario creado exitosamente.");
+        return ResponseEntity.status(HttpStatus.CREATED).body(new MessageResource("Usuario creado exitosamente."));
     }
 
     @Operation(summary = "Iniciar sesión (Obtener Token)")
@@ -63,7 +64,7 @@ public class AuthenticationController {
         var result = userCommandService.handle(command);
 
         if (result.isEmpty())
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciales inválidas.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new MessageResource("Credenciales inválidas."));
 
         var userEntity = result.get().getLeft();
         var token = result.get().getRight();

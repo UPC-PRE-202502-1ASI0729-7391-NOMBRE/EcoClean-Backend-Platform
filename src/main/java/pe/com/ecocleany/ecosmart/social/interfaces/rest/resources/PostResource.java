@@ -10,5 +10,6 @@ public record PostResource(
         Integer likes,
         boolean isOfficial,
         String authorName,
+        Long authorId,
         Date createdAt
 ) {}

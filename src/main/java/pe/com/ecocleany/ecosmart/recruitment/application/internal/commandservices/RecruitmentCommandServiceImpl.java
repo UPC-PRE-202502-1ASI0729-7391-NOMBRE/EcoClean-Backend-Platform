@@ -1,48 +1,37 @@
 package pe.com.ecocleany.ecosmart.recruitment.application.internal.commandservices;
 
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
-
-import pe.com.ecocleany.ecosmart.iam.infrastructure.persistence.jpa.repositories.UserRepository;
-import pe.com.ecocleany.ecosmart.iam.infrastructure.persistence.jpa.repositories.RoleRepository;
 import pe.com.ecocleany.ecosmart.iam.domain.model.entities.Role;
 import pe.com.ecocleany.ecosmart.iam.domain.model.valueobjects.Roles;
-
-import pe.com.ecocleany.ecosmart.profiles.application.internal.commandservices.ProfileCommandServiceImpl;
-import pe.com.ecocleany.ecosmart.profiles.domain.model.commands.UpdateProfileMunicipalityCommand;
-
+import pe.com.ecocleany.ecosmart.iam.infrastructure.persistence.jpa.repositories.RoleRepository;
+import pe.com.ecocleany.ecosmart.iam.infrastructure.persistence.jpa.repositories.UserRepository;
+import pe.com.ecocleany.ecosmart.profiles.infrastructure.persistence.jpa.repositories.ProfileRepository;
 import pe.com.ecocleany.ecosmart.recruitment.domain.model.aggregates.JobApplication;
 import pe.com.ecocleany.ecosmart.recruitment.domain.model.commands.CreateApplicationCommand;
 import pe.com.ecocleany.ecosmart.recruitment.domain.model.commands.FireEmployeeCommand;
 import pe.com.ecocleany.ecosmart.recruitment.domain.model.commands.UpdateApplicationStatusCommand;
 import pe.com.ecocleany.ecosmart.recruitment.infrastructure.persistence.jpa.repositories.JobApplicationRepository;
 
-import pe.com.ecocleany.ecosmart.shared.domain.model.events.EmployeeFiredEvent;
-import pe.com.ecocleany.ecosmart.shared.domain.model.events.EmployeeHiredEvent;
-
 import java.util.Optional;
 
 @Service
 public class RecruitmentCommandServiceImpl {
 
-    private final JobApplicationRepository repository;
-    private final ApplicationEventPublisher eventPublisher;
+    private final JobApplicationRepository applicationRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-    private final ProfileCommandServiceImpl profileService;
+    private final ProfileRepository profileRepository;
 
     public RecruitmentCommandServiceImpl(
-            JobApplicationRepository repository,
-            ApplicationEventPublisher eventPublisher,
+            JobApplicationRepository applicationRepository,
             UserRepository userRepository,
             RoleRepository roleRepository,
-            ProfileCommandServiceImpl profileService
+            ProfileRepository profileRepository
     ) {
-        this.repository = repository;
-        this.eventPublisher = eventPublisher;
+        this.applicationRepository = applicationRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
-        this.profileService = profileService;
+        this.profileRepository = profileRepository;
     }
 
     public Long handle(CreateApplicationCommand command) {
@@ -51,64 +40,49 @@ public class RecruitmentCommandServiceImpl {
                 command.targetMunicipality(),
                 command.description()
         );
-        repository.save(application);
+        applicationRepository.save(application);
         return application.getId();
     }
 
     public Optional<JobApplication> handle(UpdateApplicationStatusCommand command) {
-
-        return repository.findById(command.applicationId()).map(application -> {
-
+        return applicationRepository.findById(command.applicationId()).map(application -> {
             application.updateStatus(command.status());
-            repository.save(application);
+            applicationRepository.save(application);
 
             if ("APPROVED".equalsIgnoreCase(command.status())) {
-
-                var user = userRepository.findById(application.getApplicantId())
-                        .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-
-                // 1) Obtener rol desde la BD
-                Role employeeRole = roleRepository
-                        .findByName(Roles.ROLE_EMPLOYEE)
-                        .orElseThrow(() -> new RuntimeException("ROLE_EMPLOYEE no existe en la BD"));
-
-                // 2) Asignar rol EMPLOYEE al usuario
-                user.addRole(employeeRole);
-                userRepository.save(user);
-
-                // 3) Actualizar municipio en el perfil
-                profileService.handle(
-                        new UpdateProfileMunicipalityCommand(
-                                application.getApplicantId(),
-                                application.getTargetMunicipality()
-                        )
-                );
-
-                // 4) Publicar evento
-                eventPublisher.publishEvent(
-                        new EmployeeHiredEvent(this, application.getApplicantId(), application.getTargetMunicipality())
-                );
+                contratarEmpleado(application.getApplicantId(), application.getTargetMunicipality());
+            } else if ("REJECTED".equalsIgnoreCase(command.status())) {
             }
-
             return application;
         });
     }
 
     public void handle(FireEmployeeCommand command) {
-
         var user = userRepository.findById(command.userId())
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        var roleEmployee = roleRepository.findByName(Roles.ROLE_EMPLOYEE).orElseThrow();
 
-        // 1) Obtener rol EMPLOYEE
-        Role employeeRole = roleRepository
-                .findByName(Roles.ROLE_EMPLOYEE)
-                .orElseThrow(() -> new RuntimeException("ROLE_EMPLOYEE no existe"));
-
-        // 2) Remover rol
-        user.getRoles().remove(employeeRole);
+        user.getRoles().remove(roleEmployee);
         userRepository.save(user);
 
-        // 3) Evento
-        eventPublisher.publishEvent(new EmployeeFiredEvent(this, command.userId()));
+        profileRepository.findByUserId(command.userId()).ifPresent(profile -> {
+            profile.setWorkingMunicipality(null);
+            profileRepository.save(profile);
+        });
+    }
+
+    private void contratarEmpleado(Long userId, String municipality) {
+        var user = userRepository.findById(userId).orElseThrow();
+        var roleEmployee = roleRepository.findByName(Roles.ROLE_EMPLOYEE).orElseThrow();
+
+        // 1. Dar Rol
+        user.addRole(roleEmployee);
+        userRepository.save(user);
+
+        // 2. Actualizar Perfil (Asignar lugar de trabajo)
+        profileRepository.findByUserId(userId).ifPresent(profile -> {
+            profile.setWorkingMunicipality(municipality);
+            profileRepository.save(profile);
+        });
     }
 }

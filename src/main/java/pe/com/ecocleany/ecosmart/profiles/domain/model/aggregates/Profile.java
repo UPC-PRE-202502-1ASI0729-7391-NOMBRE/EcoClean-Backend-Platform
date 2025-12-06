@@ -17,6 +17,9 @@ public class Profile extends AuditableAbstractAggregateRoot<Profile> {
     private String photoUrl;
     private Long userId;
 
+    // Campo para empleados
+    private String workingMunicipality;
+
     public Profile(String firstName, String lastName, String email, String district, String photoUrl, Long userId) {
         this.firstName = firstName;
         this.lastName = lastName;
@@ -27,21 +30,18 @@ public class Profile extends AuditableAbstractAggregateRoot<Profile> {
     }
 
     public void updateFirstName(String firstName) { this.firstName = firstName; }
-
     public void updateLastName(String lastName) { this.lastName = lastName; }
-
     public void updateAddress(String district) { this.district = district; }
-
     public void updatePhoto(String photoUrl) { this.photoUrl = photoUrl; }
+
+    public void updateEmail(String email) { this.email = email; }
+
+    public void setWorkingMunicipality(String municipality) {
+        this.workingMunicipality = municipality;
+    }
 
     public String getFullName() {
         return (firstName != null ? firstName : "") +
                 (lastName != null ? " " + lastName : "");
     }
-
-    public void setDistrict(String district) {
-        this.district = district;
-    }
-
 }
-

@@ -1,3 +1,3 @@
 package pe.com.ecocleany.ecosmart.communication.domain.model.commands;
 
-public record ReplyMessageCommand(String content, Long employeeId) {}
+public record ReplyMessageCommand(String content, Long employeeId, String targetMunicipality) {}

@@ -28,7 +28,7 @@ public class MessageCommandServiceImpl {
     }
 
     public Long handle(ReplyMessageCommand command) {
-        var message = new Message(command.content(), command.employeeId(), "MUNICIPALIDAD");
+        var message = new Message(command.content(), command.employeeId(), command.targetMunicipality());
         message.markAsResponse();
         messageRepository.save(message);
         return message.getId();

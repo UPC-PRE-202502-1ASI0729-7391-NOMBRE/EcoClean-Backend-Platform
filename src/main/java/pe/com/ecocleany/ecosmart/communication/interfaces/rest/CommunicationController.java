@@ -13,6 +13,7 @@ import pe.com.ecocleany.ecosmart.communication.interfaces.rest.resources.Message
 import pe.com.ecocleany.ecosmart.communication.interfaces.rest.resources.ReplyMessageResource;
 import pe.com.ecocleany.ecosmart.communication.interfaces.rest.resources.SendMessageResource;
 import pe.com.ecocleany.ecosmart.communication.interfaces.rest.transform.MessageResourceFromEntityAssembler;
+import pe.com.ecocleany.ecosmart.iam.infrastructure.persistence.jpa.repositories.UserRepository;
 import pe.com.ecocleany.ecosmart.shared.interfaces.rest.SecurityUtils;
 
 import java.util.List;
@@ -26,18 +27,29 @@ public class CommunicationController {
     private final MessageCommandServiceImpl commandService;
     private final MessageQueryServiceImpl queryService;
     private final SecurityUtils securityUtils;
+    private final UserRepository userRepository;
+    private final MessageResourceFromEntityAssembler assembler;
 
-    public CommunicationController(MessageCommandServiceImpl commandService, MessageQueryServiceImpl queryService, SecurityUtils securityUtils) {
+    public CommunicationController(MessageCommandServiceImpl commandService,
+                                   MessageQueryServiceImpl queryService,
+                                   SecurityUtils securityUtils,
+                                   UserRepository userRepository,
+                                   MessageResourceFromEntityAssembler assembler) {
         this.commandService = commandService;
         this.queryService = queryService;
         this.securityUtils = securityUtils;
+        this.userRepository = userRepository;
+        this.assembler = assembler;
     }
 
     @Operation(summary = "Usuario: Enviar mensaje")
     @PostMapping("/send")
     public ResponseEntity<Long> sendMessage(@RequestBody SendMessageResource resource) {
-        Long userId = (Long) 1L;
-        var command = new CreateMessageCommand(resource.content(), resource.targetMunicipality(), userId);
+        String username = securityUtils.getCurrentUsername();
+        var user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        var command = new CreateMessageCommand(resource.content(), resource.targetMunicipality(), user.getId());
         Long messageId = commandService.handle(command);
         return ResponseEntity.ok(messageId);
     }
@@ -45,8 +57,16 @@ public class CommunicationController {
     @Operation(summary = "Empleado: Responder")
     @PostMapping("/reply")
     public ResponseEntity<Long> replyMessage(@RequestBody ReplyMessageResource resource) {
-        Long employeeId = (Long) 2L;
-        var command = new ReplyMessageCommand(resource.content(), employeeId);
+        String username = securityUtils.getCurrentUsername();
+        var employee = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Empleado no encontrado"));
+
+        var command = new ReplyMessageCommand(
+                resource.content(),
+                employee.getId(),
+                resource.targetMunicipality()
+        );
+
         Long messageId = commandService.handle(command);
         return ResponseEntity.ok(messageId);
     }
@@ -57,7 +77,7 @@ public class CommunicationController {
         var messages = queryService.handle(query);
 
         var resources = messages.stream()
-                .map(MessageResourceFromEntityAssembler::toResource)
+                .map(assembler::toResource)
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(resources);

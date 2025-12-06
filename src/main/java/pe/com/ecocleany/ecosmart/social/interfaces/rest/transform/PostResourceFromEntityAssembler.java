@@ -34,6 +34,7 @@ public class PostResourceFromEntityAssembler {
                 entity.getLikesCount(),
                 entity.isOfficialAnnouncement(),
                 authorDisplay,
+                entity.getAuthorId(),
                 entity.getCreatedAt()
         );
     }

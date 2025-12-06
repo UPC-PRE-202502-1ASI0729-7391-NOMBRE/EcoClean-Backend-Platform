@@ -4,6 +4,8 @@ public record UpdateProfileCommand(
         Long userId,
         String firstName,
         String lastName,
+        String email,
         String district,
-        String photoUrl
+        String photoUrl,
+        String password
 ) {}

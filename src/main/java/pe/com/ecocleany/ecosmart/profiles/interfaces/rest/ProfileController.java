@@ -63,13 +63,14 @@ public class ProfileController {
                 userId,
                 resource.firstName(),
                 resource.lastName(),
+                resource.email(),     // <--- NUEVO
                 resource.district(),
-                resource.photoUrl()
+                resource.photoUrl(),
+                resource.password()   // <--- NUEVO
         );
 
         return commandService.handle(command)
                 .map(updated -> ResponseEntity.ok(ProfileResourceFromEntityAssembler.toResource(updated)))
                 .orElse(ResponseEntity.notFound().build());
     }
-
 }
